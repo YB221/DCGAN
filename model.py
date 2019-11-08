@@ -44,5 +44,34 @@ class Generator(nn.Module):
         img = self.conv_blocks(out)
         return img
 
+class Discriminator(nn.Module):
+    def __init__(self, img_shape=(64, 64, 3)):
+        super(Discriminator, self).__init__()
+        
+        h, w, c = img_shape
+        def discriminator_block(in_filters, out_filters, bn=True):
+          block = [nn.Conv2d(in_filters, out_filters, 4, 2, 1)]
+          if bn:
+              block.append(nn.BatchNorm2d(out_filters))
+          block.append(nn.LeakyReLU(0.2, inplace=True))
+          return block
 
+        self.features = nn.Sequential(
+            *discriminator_block(c, 16, bn=False),
+            *discriminator_block(16, 32),
+            *discriminator_block(32, 64),
+            *discriminator_block(64, 128),
+        )
+        
+        self.classifier = nn.Sequential(
+            nn.Linear(h*w//2, 1), 
+            nn.Sigmoid()
+        )
+
+    def forward(self, img):
+        out = self.features(img)
+        out = out.view(out.shape[0], -1)
+        out = self.classifier(out)
+        return out
+      
     
